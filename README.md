@@ -12,14 +12,14 @@ que l'admin continue a s'étoffer.
 
 L'idée est de se servir de la BDD DOTCLEAR pour :
 
-* 	- Affichage en mode responsive max 1140 pixels 
-*	- Afficher la page d'accueil
-*	- Afficher la page billet avec ses commentaires
-*	- Afficher les pages statiques
-* 	- Autoriser le postage de commentaires
-* 	- Mettre un maximum de chose en cache pour limiter au maximum les acces BDD
-*	- Sitemap
-*	- Flux rss
+* Affichage en mode responsive max 1140 pixels 
+* Afficher la page d'accueil
+* Afficher la page billet avec ses commentaires
+* Afficher les pages statiques
+* Autoriser le postage de commentaires
+* Mettre un maximum de chose en cache pour limiter au maximum les acces BDD
+* Sitemap
+* Flux rss
 
 La liste de TODO est longue :
 
@@ -35,8 +35,10 @@ La liste de TODO est longue :
 
 
 Le site officiel de DOTCLEAR
-[<a="http://http://fr.dotclear.org/</a>]
+===
+Dotclear http://http://fr.dotclear.org
 
 Utilisation de la structure responsive de Joshua Gatcke
-[<a="http://www.99lime.com</a>]
+===
+www.99lime.com http://www.99lime.com
 
