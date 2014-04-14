@@ -10,12 +10,17 @@ ce README chez mon hebergeur.
 Dans l'immédiat le back-office est toujours réalisé avec DOTCLEAR et je pense que ça le restera d'autant
 que l'admin continue a s'étoffer. 
 
+Sauf erreur de ma part cette version est fonctionnelle et reprend les principales url d'un blog Dotclear sauf
+la page archive.
+
 L'idée est de se servir de la BDD DOTCLEAR pour :
 
 * Affichage en mode responsive max 1140 pixels 
 * Afficher la page d'accueil
 * Afficher la page billet avec ses commentaires
 * Afficher les pages statiques
+* Afficher les pages tag
+* Afficher les pages catégories
 * Autoriser le postage de commentaires
 * Mettre un maximum de chose en cache pour limiter au maximum les acces BDD
 * Sitemap
@@ -25,13 +30,15 @@ La liste de TODO est longue :
 
 * compléter la feuille de style pour un affichage correct
 * optimiser ou finir le decorticage d'URL (90%)
-* faire le système de cache (reste à eclater en repertoir)
+* optimiser le code par exemple en fusionnant des functions faisant quasiment la meme chose (tag et catégorie)
+* faire le système de cache (reste à eclater en repertoire)
 * implémenter la partie javascript pour navigation horizontale (Billet precedent ou suivant)
-* faire le flux RSS
 * ne pas faire d'include c a d fusionner tout dans index.php pour la version finale stable
 * s'assurer de la compatibilité avec DC 1.2.6
 * prendre en compte certain plugin (lesquels ?)
 * améliorer la gestion PDO (quand les requetes remontent rien)
+* mettre en parametre le prefixe des tables
+* voir possibilité de faire page archive
 
 
 Le site officiel de DOTCLEAR

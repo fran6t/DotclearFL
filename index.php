@@ -1,7 +1,7 @@
 <?php
 /* DotclearFL se veut un essai d'affichage de blog basé sur le moteur DOTCLEAR 
  * en se passant dans l'immédiat de fonctionalité majeur tel que le ping, les 
- * TAG 
+ * TAG, les catégories 
  * 
  * L'idée est de se servir de la BDD DOTCLEAR pour
  * 	- Affichage en mode responsive max 1140 pixels 
@@ -60,6 +60,39 @@ catch(Exception $e)
 	echo 'Erreur : '.$e->getMessage().'<br />';
 	echo 'N° : '.$e->getCode();
 	die();
+}
+
+
+if ($url[0] == "feed"){
+	
+	//on lit les 25 premiers éléments à partir du dernier ajouté dans la base de données
+	$index_selection = 0;
+	$limitation = 20;
+	$reponse = $connexion->prepare('SELECT * FROM dc_BETA1post ORDER BY post_upddt DESC LIMIT :index_selection, :limitation') or die(print_r($connexion->errorInfo()));
+	$reponse->bindParam('index_selection', $index_selection, PDO::PARAM_INT);
+	$reponse->bindParam('limitation', $limitation, PDO::PARAM_INT);
+	$reponse->execute();
+
+	//Une fois les informations récupérées, on ajoute un à un les items à notre fichier
+	while ($donnees = $reponse->fetch())
+	{
+		$PARAM_xml .= "<item>".chr(13);;
+		$PARAM_xml .= "<title>".htmlspecialchars($donnees['post_title'])."</title>".chr(13);
+		$PARAM_xml .= "<link>".htmlspecialchars($PARAM_domaine.$PARAM_racine.'index.php/'.$donnees['post_url'])."</link>".chr(13);
+		$PARAM_xml .= "<guid isPermaLink=\"true\">".htmlspecialchars($PARAM_domaine.$PARAM_racine.'index.php/'.$donnees['post_url'])."</guid>".chr(13);
+		$PARAM_xml .= "<pubDate>".(date("D, d M Y H:i:s O", strtotime($donnees['post_upddt'])))."</pubDate>".chr(13);
+		$PARAM_xml .= "<description>".htmlspecialchars(stripcslashes($donnees['post_content_xhtml']))."</description>".chr(13);
+		$PARAM_xml .= "</item>".chr(13);
+	}
+	//Puis on termine la requête
+	$reponse->closeCursor();
+ 
+	//Et on ferme le channel et le flux RSS.
+	$PARAM_xml .= '</channel>'.chr(13);
+	$PARAM_xml .= '</rss>'.chr(13);
+	header("Content-Type: application/xml; charset=UTF-8");
+	echo $PARAM_xml;
+	return;
 }
 
 // si c'est le sitemap qui est demandé
@@ -212,7 +245,7 @@ if ($url[0] == "pages"){
 					AND blog_id = 'default'
 					AND post_type = 'pages'
 					AND post_password IS NULL LIMIT 0,1;";
-	echo "<br />".$query."<br />";
+	//echo "<br />".$query."<br />";
 	$resultats=$connexion->query($query); // on va chercher tous les membres de la table qu'on trie par ordre croissant
 	$resultats->setFetchMode(PDO::FETCH_OBJ); // on dit qu'on veut que le résultat soit récupérable sous forme d'objet
 	while( $ligne = $resultats->fetch() ) // on récupère la liste des membres
@@ -246,9 +279,10 @@ if ($url[0] == "index" || $url[0] == "page"){
 	$afflienpage = getPaginationString($url[1], $countbillet, 10, 1,$PARAM_domaine.$PARAM_racine, "index.php/page/");
 	$content = $afflienpage;
 	
-	$query = "SELECT * FROM dc_BETA1post 
-					WHERE post_status=1 
-					AND blog_id = 'default'
+	$query = "SELECT * FROM dc_BETA1post, dc_BETA1category  
+					WHERE post_status=1
+					AND dc_BETA1post.cat_id =  dc_BETA1category.cat_id
+					AND dc_BETA1post.blog_id = 'default'
 					AND post_type = 'post'
 					AND post_password IS NULL
 					ORDER BY post_dt 
@@ -280,6 +314,12 @@ if ($url[0] == "index" || $url[0] == "page"){
 			$content .= "	<h1 class=\"post-title\">";
 			$content .= "		<a href=\"".$PARAM_racine."index.php/post/".$ligne->post_url."\">".$ligne->post_title."</a>";
 			$content .= "	</h1>";
+			$content .= "	<div class=\"post-tags\">";
+			$content .= "		Le ".date('d/m/Y',strtotime($ligne->post_creadt))." dans ";
+			$content .= "		<span class=\"categ\"><a href=\"".$PARAM_domaine.$PARAM_racine."index.php/category/".urlencode($ligne->cat_url)."\">[".$ligne->cat_title."]</a></span>";
+			$content .= "		<br />Tag(s): ";
+			$content .= 		f_lestags($PARAM_domaine.$PARAM_racine.'index.php/tag/',$ligne->post_meta);
+			$content .= "	</div>";
 			$content .= "	<div>";
 			$content .= 		$ligne->post_excerpt_xhtml;
 			$content .= "		<p class=\"read-it\">";
@@ -296,6 +336,7 @@ if ($url[0] == "index" || $url[0] == "page"){
 			$content .= "	<h1 class=\"post-title\">";
 			$content .= "		<a href=\"".$PARAM_racine."index.php/post/".$ligne->post_url."\">".$ligne->post_title."</a>";
 			$content .= "	</h1>";
+			$content .= f_lestags($PARAM_domaine.$PARAM_racine.'index.php/tag/',$ligne->post_meta);
 			$content .=  	$ligne->post_content_xhtml;
 			$content .= "</div>";
 		}
@@ -306,6 +347,7 @@ if ($url[0] == "index" || $url[0] == "page"){
 }
 
 if ($url[0] == "post"){
+	
 	$query = "SELECT * FROM dc_BETA1post WHERE 
 					blog_id = 'default'
 					AND post_url='".$url[1]."'";
@@ -321,6 +363,7 @@ if ($url[0] == "post"){
 		$content .= "	<h1 class=\"post-title\">";
 		$content .= 		$ligne->post_title;
 		$content .= "	</h1>";
+		$content .= f_lestags($PARAM_domaine.$PARAM_racine.'index.php/tag/',$ligne->post_meta);
 		$content .= "	<span class=\"description\">".$ligne->post_content_xhtml."</span>";
 		$content .= "</article>";
 		$content .= $PARAM_pubpost;
@@ -376,20 +419,198 @@ if ($url[0] == "post"){
 	$comment .=  "	</div>";
 }
 
-// Trouver le nombre de billet
-$query = "SELECT post_id FROM dc_BETA1post WHERE post_status=1";
-//echo $query; 
-$resultats=$connexion->prepare($query); // on va chercher tous les membres de la table qu'on trie par ordre croissant
-$resultats->execute();
-$countbillet = $resultats->rowCount();
 
+//SELECT meta_id, count( meta_id ) FROM `dc_BETA1meta` GROUP BY `meta_id` LIMIT 0 , 30
+if ($url[0] == "tag"){
+	// On ecrase $PARAM_title pour avoir un titre de page unique
+	$quelpage = "";
+	if ($url[2] > 1){
+			$quelpage = " (page ".$url[2].")";
+	} 
+	$PARAM_title = $url[1]." : ".$PARAM_title.$quelpage;
+	// Idem pour la description
+	$PARAM_description = "L'ensemble des billets en rapport avec : ".$url[1].$quelpage;
+	// Trouver le nombre de billet
+	$query = "SELECT dc_BETA1meta.post_id FROM dc_BETA1meta, dc_BETA1post 
+					WHERE 
+					dc_BETA1meta.meta_id = '".$url[1]."'
+					AND dc_BETA1meta.post_id = dc_BETA1post.post_id
+					AND post_status=1
+					AND blog_id = 'default'
+					AND post_password IS NULL
+					AND post_type = 'post'
+					ORDER BY post_dt DESC;";
+	//echo $query; 
+	$resultats=$connexion->prepare($query); // on va chercher tous les membres de la table qu'on trie par ordre croissant
+	$resultats->execute();
+	$countbillet = $resultats->rowCount();
+	//echo "countbillet=".$countbillet;
+	// Si il y a plus de 10 resultats il faut une gestion page
+	if ($countbillet > 10){
+		// Comme je vais m'en servir deux fois je ne refais pas deux fois ->getLinks()
+		$afflienpage = getPaginationTag($url[2], $countbillet, 10, 1,$PARAM_domaine.$PARAM_racine, "index.php/tag/".$url[1]."/page/","tag",$url[1]);
+		$content = $afflienpage;
+	}
+	
+	$query = "SELECT * FROM dc_BETA1meta, dc_BETA1post 
+					WHERE 
+					dc_BETA1meta.meta_id = '".$url[1]."'
+					AND dc_BETA1meta.post_id = dc_BETA1post.post_id
+					AND post_status=1
+					AND blog_id = 'default'
+					AND post_password IS NULL
+					AND post_type = 'post'
+					ORDER BY post_dt DESC LIMIT ".(($url[2]-1)*10).",10;";
+	//echo "<br />".$query."<br />";
+	$resultats=$connexion->query($query); // on va chercher tous les membres de la table qu'on trie par ordre croissant
+	$resultats->setFetchMode(PDO::FETCH_OBJ); // on dit qu'on veut que le résultat soit récupérable sous forme d'objet
+	$pub = 0;
+	while( $ligne = $resultats->fetch() ) // on récupère la liste des membres
+	{
+		if ($pub == 0) {
+			$content .= $PARAM_pubhome;
+		}
+		if ($pub == 1) {
+			$content .= $PARAM_pubhome;
+		}
+		if ($pub == 3) {
+			$content .= $PARAM_pubhome;
+		}
+		if ($pub == 8) {
+			$content .= $PARAM_pubhome;
+		}
+		if ($pub == 9) {
+			$content .= $PARAM_pubhome;
+		}
+		$pub++;
+		if (rtrim($ligne->post_excerpt_xhtml)!=""){
+			$content .= "<div class=\"description post-excerpt\">";
+			$content .= "	<h1 class=\"post-title\">";
+			$content .= "		<a href=\"".$PARAM_racine."index.php/post/".$ligne->post_url."\">".$ligne->post_title."</a>";
+			$content .= "	</h1>";
+			$content .= "	<div>";
+			$content .= 		$ligne->post_excerpt_xhtml;
+			$content .= "		<p class=\"read-it\">";
+			$content .= "			<a title=\"Lire la suite ".$ligne->post_title."\" href=\"".$PARAM_racine."index.php/post/".$ligne->post_url."\">Lire la suite</a>";
+			$content .= "		</p>";
+			$content .= "	</div>";
+			$content .= "</div>";
+			$pourh4	.= "<div class=\"col_3\">";
+			$pourh4	.= "<h4 class=\"post-title\"><a href=\"".$PARAM_racine."index.php/post/".$ligne->post_url."\">".$ligne->post_title."</a></h4>";
+			$pourh4	.= $ligne->post_excerpt_xhtml;;
+			$pourh4	.= "</div>";
+		} else {
+			$content .= "<div class=\"description\">";
+			$content .= "	<h1 class=\"post-title\">";
+			$content .= "		<a href=\"".$PARAM_racine."index.php/post/".$ligne->post_url."\">".$ligne->post_title."</a>";
+			$content .= "	</h1>";
+			$content .=  	$ligne->post_content_xhtml;
+			$content .= "</div>";
+		}
+	}
+	// Et je remet aussi la selection de page en bas
+	$content .= $afflienpage;
+	$resultats->closeCursor(); // on ferme le curseur des résultats
+}
+
+if ($url[0] == "category"){
+	// On ecrase $PARAM_title pour avoir un titre de page unique
+	$quelpage = "";
+	if ($url[2] > 1){
+			$quelpage = " (page ".$url[2].")";
+	} 
+	$PARAM_title = $url[1]." : ".$PARAM_title.$quelpage;
+	// Idem pour la description
+	$PARAM_description = "L'ensemble des billets placés dans la catégorie : ".$url[1].$quelpage;
+	// Trouver le nombre de billet
+	$query = "SELECT dc_BETA1category.cat_id FROM dc_BETA1category, dc_BETA1post 
+					WHERE 
+					dc_BETA1category.cat_url = '".$url[1]."'
+					AND dc_BETA1category.cat_id = dc_BETA1post.cat_id
+					AND post_status=1
+					AND dc_BETA1post.blog_id = 'default'
+					AND post_password IS NULL
+					AND post_type = 'post'
+					ORDER BY post_dt DESC;";
+	echo $query; 
+	$resultats=$connexion->prepare($query); // on va chercher tous les membres de la table qu'on trie par ordre croissant
+	$resultats->execute();
+	$countbillet = $resultats->rowCount();
+	//echo "countbillet=".$countbillet;
+	// Si il y a plus de 10 resultats il faut une gestion page
+	if ($countbillet > 10){
+		// Comme je vais m'en servir deux fois je ne refais pas deux fois ->getLinks()
+		$afflienpage = getPaginationTag($url[2], $countbillet, 10, 1,$PARAM_domaine.$PARAM_racine, "index.php/category/".$url[1]."/page/","category",$url[1]);
+		$content = $afflienpage;
+	}
+	
+	$query = "SELECT * FROM dc_BETA1category, dc_BETA1post 
+					WHERE 
+					dc_BETA1category.cat_url = '".urldecode($url[1])."'
+					AND dc_BETA1category.cat_id = dc_BETA1post.cat_id
+					AND post_status=1
+					AND dc_BETA1post.blog_id = 'default'
+					AND post_password IS NULL
+					AND post_type = 'post'
+					ORDER BY post_dt DESC LIMIT ".(($url[2]-1)*10).",10;";
+	echo "<br />".$query."<br />";
+	$resultats=$connexion->query($query); // on va chercher tous les membres de la table qu'on trie par ordre croissant
+	$resultats->setFetchMode(PDO::FETCH_OBJ); // on dit qu'on veut que le résultat soit récupérable sous forme d'objet
+	$pub = 0;
+	while( $ligne = $resultats->fetch() ) // on récupère la liste des membres
+	{
+		if ($pub == 0) {
+			$content .= $PARAM_pubhome;
+		}
+		if ($pub == 1) {
+			$content .= $PARAM_pubhome;
+		}
+		if ($pub == 3) {
+			$content .= $PARAM_pubhome;
+		}
+		if ($pub == 8) {
+			$content .= $PARAM_pubhome;
+		}
+		if ($pub == 9) {
+			$content .= $PARAM_pubhome;
+		}
+		$pub++;
+		if (rtrim($ligne->post_excerpt_xhtml)!=""){
+			$content .= "<div class=\"description post-excerpt\">";
+			$content .= "	<h1 class=\"post-title\">";
+			$content .= "		<a href=\"".$PARAM_racine."index.php/post/".$ligne->post_url."\">".$ligne->post_title."</a>";
+			$content .= "	</h1>";
+			$content .= "	<div>";
+			$content .= 		$ligne->post_excerpt_xhtml;
+			$content .= "		<p class=\"read-it\">";
+			$content .= "			<a title=\"Lire la suite ".$ligne->post_title."\" href=\"".$PARAM_racine."index.php/post/".$ligne->post_url."\">Lire la suite</a>";
+			$content .= "		</p>";
+			$content .= "	</div>";
+			$content .= "</div>";
+			$pourh4	.= "<div class=\"col_3\">";
+			$pourh4	.= "<h4 class=\"post-title\"><a href=\"".$PARAM_racine."index.php/post/".$ligne->post_url."\">".$ligne->post_title."</a></h4>";
+			$pourh4	.= $ligne->post_excerpt_xhtml;;
+			$pourh4	.= "</div>";
+		} else {
+			$content .= "<div class=\"description\">";
+			$content .= "	<h1 class=\"post-title\">";
+			$content .= "		<a href=\"".$PARAM_racine."index.php/post/".$ligne->post_url."\">".$ligne->post_title."</a>";
+			$content .= "	</h1>";
+			$content .=  	$ligne->post_content_xhtml;
+			$content .= "</div>";
+		}
+	}
+	// Et je remet aussi la selection de page en bas
+	$content .= $afflienpage;
+	$resultats->closeCursor(); // on ferme le curseur des résultats
+}
 ?>
 <!DOCTYPE html>
 <html><head>
 <title><?php echo $PARAM_title; ?></title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="description" content="" />
+<meta name="description" content="<?php echo $PARAM_description; ?>" />
 <meta name="copyright" content="" />
 <link rel="stylesheet" type="text/css" href="<?php echo $PARAM_domaine.$PARAM_racine; ?>css/kickstart-grid.css" media="all" />
 <!-- <link rel="stylesheet" type="text/css" href="<?php echo $PARAM_domaine.$PARAM_racine; ?>style.css" media="all" />
@@ -488,19 +709,19 @@ $countbillet = $resultats->rowCount();
 		/* z-index: 1200; */
 		color: #FFF;
 	}
-	.sidebar, #comment {
+	.sidebar, #comment, .post-tags {
 		font-family: Verdana,Arial,Geneva,Helvetica,sans-serif;
 		font-size: 0.8em;
-		color: #000;
+		color: #000099;
 	}
-	.sidebar a {
-		color: black;
+	.sidebar a, .post-tags a {
+		color: #000099;
 		text-decoration: none;
 	}
-	.sidebar a:visited {
+	.sidebar a:visited, .post-tags a:visited {
 		color: gray;
 	}
-	.sidebar a:hover {
+	.sidebar a:hover , .post-tags a:hover{
 		text-decoration: underline;
 	}
 	.sidebar h2, #sidebar h2 {
@@ -558,7 +779,6 @@ $countbillet = $resultats->rowCount();
 	}
 	
 	* span.elipsis {zoom:100%}
-	
     </style>
 
 
