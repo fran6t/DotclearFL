@@ -1,4 +1,8 @@
 <?php
+/********************************************************************************/
+/* Version : 0.9																*/
+/* Ensemble des fonctions necessaires
+ * ******************************************************************************/
 
 /* Retourne un tableau a deux dim la premiere
  * si nous sommes à l'accueil
@@ -15,21 +19,29 @@
  * 		$urlcompl[1] = "le reste de l'url";
  * */
 
-function feclateURL($monurl,$PARAM_racine){
+
+function feclateURL($monurl,$PARAM_racine,$PARAM_script){
+	if (DEBUG) echo "<br />monurl=".$monurl." PARAM_racine=".$PARAM_racine."<br />";
 	$urlcompl[0] = "404";
 	$urlcompl[1] = "";
-	// On retire l'eventuel racine du site
-	$monurl = str_replace($PARAM_racine,"",$monurl);
-	if ($monurl == ""){
+	// Si $Param_racine == / il faut juste enlever ce premier / sinon on enleve tout le $Param_racine
+	if ( $PARAM_racine == "/") {
+		$monurl = substr($monurl,1);
+		
+	} else {
+		$monurl = str_replace($PARAM_racine,"",$monurl);
+	}
+	if (DEBUG) echo "<br /> if ".$monurl." == ".$PARAM_script."<br />";
+	if ($monurl == "" || $monurl == $PARAM_script){
 		$urlcompl[0] = "index";
 		$urlcompl[1] = 1;
 		return $urlcompl;
 	}
 	//echo "monurl=".$monurl."<br />";
 	$urllocale = explode("/",$monurl); 
-	//echo "urllocale[0]=".$urllocale[0];
-	// le premier element doit etre index.php
-	if ($urllocale[0] != "index.php"){
+	if (DEBUG) echo "<br />urllocale[0]=".$urllocale[0];
+	// le premier element doit etre PARAM_script
+	if ($urllocale[0] != $PARAM_script){
 		$urlcompl[0] = "404";
 		$urlcompl[1] = "";
 		return $urlcompl;
@@ -397,5 +409,4 @@ function f_lestags($prefixurl,$datapost_meta){
 		}
 		return $lestags;
 }
-
 ?>
