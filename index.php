@@ -1,6 +1,6 @@
 <?php
 /*********************************************************************************************/
-/* V0.9 du 16/04/2014
+/* V0.9.1 du 19/04/2014
  * 
  * DotclearFL se veut un essai d'affichage de blog basé sur le moteur DOTCLEAR 
  * en se passant dans l'immédiat de fonctionalité majeur tel que le ping, les 
@@ -169,9 +169,13 @@ if (isset($_POST['bval'])){
 			$msgerreur .= "Contenu Obligatoire !<br />";	
 		}
 		if (strtoupper(rtrim($_POST['c_ctrl']))!="A"){
-			$msgerreur .= "Code contrôle incorrect !<br />";
+			$msgerreur.= "<br />";
+			$msgerreur.= "**********************************************************<br />";
+			$msgerreur.= "********* Code contrôle incorrect !            ***********<br />";
+			$msgerreur.= "**********************************************************<br />";
+			$msgerreur.= "<br />";
+
 		}
-		echo $msgerreur;
 		// Si pas d'erreur nous pouvons faire le insert
 		if ($msgerreur == ""){
 			// Trouver le nombre de billet
@@ -198,7 +202,7 @@ if (isset($_POST['bval'])){
 						`comment_trackback`) 
 						VALUES 
 						('".$maxId."',
-						 '802',
+						 '".$_POST['postid']."',
 						 '".date("Y-m-d H:i:s")."',
 						 'UTC', 
 						 '".date("Y-m-d H:i:s")."', 
@@ -216,6 +220,11 @@ if (isset($_POST['bval'])){
 			// on doit pourvoir faire un prepa et un select max dans la requete insert je pense à creuser. 
 			$resultats=$connexion->prepare($query);
 			$resultats->execute();
+			$msgerreur.= "<br />";
+			$msgerreur.= "**********************************************************<br />";
+			$msgerreur.= "********* Commentaire bien reçu merci à vous ! ***********<br />";
+			$msgerreur.= "**********************************************************<br />";
+			$msgerreur.= "<br />";
 		}
 	} 
 }
@@ -361,7 +370,6 @@ if ($url[0] == "index" || $url[0] == "page"){
 }
 
 if ($url[0] == "post"){
-	
 	$query = "SELECT * FROM ".$PARAM_prefixBDD."post,".$PARAM_prefixBDD."category WHERE 
 					".$PARAM_prefixBDD."post.blog_id = 'default'
 					AND ".$PARAM_prefixBDD."post.cat_id = ".$PARAM_prefixBDD."category.cat_id
@@ -372,7 +380,11 @@ if ($url[0] == "post"){
 	while( $ligne = $resultats->fetch() ){
 		$PARAM_title = $ligne->post_title;
 		$PARAM_description = substr(strip_tags($ligne->post_content_xhtml),0,150);
-		$content .= $PARAM_pubpost;
+		if ($msgerreur != ""){
+			$content .= $msgerreur;
+		} else {
+			$content .= $PARAM_pubpost;
+		}
 		$content .= "<article lang=\"fr-FR\">";
 		$content .= "	<h1 class=\"post-title\">";
 		$content .= 		$ligne->post_title;
@@ -388,6 +400,7 @@ if ($url[0] == "post"){
 		$content .= "	</div>";
 		$content .= "</article>";
 		$content .= $PARAM_pubpost;
+		$lepostid = $ligne->post_id;
         //$content .= "<hr />";
 	}
 	// On recup les commentaires aussi
@@ -416,26 +429,44 @@ if ($url[0] == "post"){
 	$comment .= '
 	    <form action="'.$PARAM_domaine.$PARAM_racine.$PARAM_script.'/post/'.$url[1].'#pr" method="post" id="comment-form">
 			<h2>Ajouter un commentaire</h2>
-			<fieldset>
-				<p class="field"><label for="c_name">Nom ou pseudo&nbsp;:</label>
-					<input name="c_name" id="c_name" type="text" size="30" maxlength="255" value="" />
-				</p>
-				<p class="field"><label for="c_mail">Adresse email&nbsp;:</label>
-					<input name="c_mail" id="c_mail" type="text" size="30" maxlength="255" value="" />
-				</p>
-				<p class="field"><label for="c_site">Site web (facultatif)&nbsp;:</label>
-					<input name="c_site" id="c_site" type="text" size="30" maxlength="255" value="" />
-				</p>
-				<p style="display:none"><input name="f_mail" type="text" size="30" maxlength="255" value="" /></p>
-				<p class="field"><label for="c_content">Commentaire&nbsp;:</label>
-					<textarea name="c_content" id="c_content" cols="35" rows="7"></textarea>
-				</p>
-			</fieldset>      
-			<p class="form-help">Le code HTML est affiché comme du texte et les adresses web sont automatiquement transformées.</p>
-			<p class="field"><label for="c_site">Saisissez la première lettre de l\'alphabet&nbsp;:</label>
-					<input name="c_ctrl" id="c_ctrl" type="text" size="5" maxlength="5" value="" />
-				</p>
-			<p><input type="submit" class="submit" name="bval" value="Valider" /></p>
+			<div>
+                <label>
+                        <span>Nom ou pseudo&nbsp;:</span>
+                        <input name="c_name" placeholder="Entrez un nom ou un pseudo" type="text" tabindex="1" required autofocus value="'.$_POST['c_name'].'"/>
+                </label>
+			</div>
+			<div>
+                <label>
+                        <span>Adresse email&nbsp;:</span>
+                        <input name="c_mail" placeholder="Entrez une adresse email" type="email" tabindex="2" required autofocus value="'.$_POST['c_mail'].'"/>
+                </label>
+			</div>
+			<div>
+                <label>
+                        <span>Votre site&nbsp;:</span>
+                        <input name="c_site" placeholder="Entrez l\'url de votre site" type="url" tabindex="3" value="'.$_POST['c_site'].'"/>
+                </label>
+			</div>
+			<div>
+                <label>
+                        <span>Commentaire&nbsp;:</span>
+                        <textarea name="c_content" placeholder="Saisissez votre commentaire" type="textarea" tabindex="4" required />'.$_POST['c_content'].'</textarea>
+                </label>
+			</div>
+			<p class="form-help">Le code HTML est affiché comme du texte et les adresses web sont automatiquement transformées.<br />
+			Le champ ci-dessous est pour confirmer que vous êtes humain</p>
+			<div>
+                <label>
+                        <span>Première lettre de l\'alphabet:</span>
+                        <input name="c_ctrl" placeholder="Saisissez la première lettre de l\'alphabet" type="text" tabindex="5" required value="'.$_POST['c_ctrl'].'"/>
+                </label>
+			</div>
+			<div>
+                <label>
+                        <input name="bval" placeholder="Valider votre saisie" type="submit" value="Valider" tabindex="6" />
+                </label>
+			</div>
+			<input type="hidden" name="postid" value="'.$lepostid.'" />
 		</form>';
 	$comment .=  "	</div>";
 }
@@ -858,6 +889,58 @@ if ($url[0] == "category"){
 		width: 100%;
 		height: 100%;
 	}
+	
+	.valtxt {
+		font-weight: 700;
+		background-color: #FFFF00;
+	}
+	
+	
+	/* Pour le formulaire responsive */
+	#comment-form input[type="text"],
+	#comment-form input[type="email"],
+	#comment-form input[type="tel"],
+	#comment-form input[type="url"],
+	#comment-form textarea {
+		width:95%;
+		box-shadow:inset 0 1px 2px #DDD, 0 1px 0 #FFF;
+		-webkit-box-shadow:inset 0 1px 2px #DDD, 0 1px 0 #FFF;
+		-moz-box-shadow:inset 0 1px 2px #DDD, 0 1px 0 #FFF;
+		border:1px solid #CCC;
+		background:#FFF;
+		margin:0 0 5px;
+		padding:10px;
+		border-radius:5px;
+	}
+
+	#comment-form button[type="submit"] {
+		cursor:pointer;
+		width:95%;
+		border:none;
+		background:#991D57;
+		background-image:linear-gradient(bottom, #8C1C50 0%, #991D57 52%);
+		background-image:-moz-linear-gradient(bottom, #8C1C50 0%, #991D57 52%);
+		background-image:-webkit-linear-gradient(bottom, #8C1C50 0%, #991D57 52%);
+		color:#FFF;
+		margin:0 0 5px;
+		padding:10px;
+		border-radius:5px;
+	}
+
+	::-webkit-input-placeholder {
+		color:#888;
+	}
+	:-moz-placeholder {
+		color:#888;
+	}
+	::-moz-placeholder {
+		color:#888;
+	}
+	:-ms-input-placeholder {
+		color:#888;
+	}
+
+
     </style>	
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <title><?php echo $PARAM_title; ?></title>
