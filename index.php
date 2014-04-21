@@ -432,13 +432,13 @@ if ($url[0] == "post"){
 			<div>
                 <label>
                         <span>Nom ou pseudo&nbsp;:</span>
-                        <input name="c_name" placeholder="Entrez un nom ou un pseudo" type="text" tabindex="1" required autofocus value="'.$_POST['c_name'].'"/>
+                        <input name="c_name" placeholder="Entrez un nom ou un pseudo" type="text" tabindex="1" required value="'.$_POST['c_name'].'"/>
                 </label>
 			</div>
 			<div>
                 <label>
                         <span>Adresse email&nbsp;:</span>
-                        <input name="c_mail" placeholder="Entrez une adresse email" type="email" tabindex="2" required autofocus value="'.$_POST['c_mail'].'"/>
+                        <input name="c_mail" placeholder="Entrez une adresse email" type="email" tabindex="2" required value="'.$_POST['c_mail'].'"/>
                 </label>
 			</div>
 			<div>
