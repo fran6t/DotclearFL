@@ -1,6 +1,6 @@
 <?php
 /*********************************************************************************************/
-/* V0.9.1 du 19/04/2014
+/* V0.9.2 du 28/04/2014
  * 
  * DotclearFL se veut un essai d'affichage de blog basé sur le moteur DOTCLEAR 
  * en se passant dans l'immédiat de fonctionalité majeur tel que le ping, les 
@@ -81,15 +81,22 @@ if ($url[0] == "feed"){
 	//on lit les 25 premiers éléments à partir du dernier ajouté dans la base de données
 	$index_selection = 0;
 	$limitation = 20;
-	$reponse = $connexion->prepare('SELECT * FROM '.$PARAM_prefixBDD.'post ORDER BY post_upddt DESC LIMIT :index_selection, :limitation') or die(print_r($connexion->errorInfo()));
+	$query = "SELECT * FROM ".$PARAM_prefixBDD."post 
+					WHERE post_status=1 
+					AND blog_id = 'default'
+					AND post_type = 'post'
+					AND post_password IS NULL
+					ORDER BY post_dt DESC LIMIT";
+	if (DEBUG) echo "<br />".$query."<br />";
+	$reponse = $connexion->prepare($query.' :index_selection, :limitation') or die(print_r($connexion->errorInfo()));
 	$reponse->bindParam('index_selection', $index_selection, PDO::PARAM_INT);
 	$reponse->bindParam('limitation', $limitation, PDO::PARAM_INT);
 	$reponse->execute();
 	while ($donnees = $reponse->fetch()){
 		$PARAM_xml .= "<item>".chr(13);;
 		$PARAM_xml .= "<title>".htmlspecialchars($donnees['post_title'])."</title>".chr(13);
-		$PARAM_xml .= "<link>".htmlspecialchars($PARAM_domaine.$PARAM_racine.$PARAM_script."/".$donnees['post_url'])."</link>".chr(13);
-		$PARAM_xml .= "<guid isPermaLink=\"true\">".htmlspecialchars($PARAM_domaine.$PARAM_racine.$PARAM_script."/".$donnees['post_url'])."</guid>".chr(13);
+		$PARAM_xml .= "<link>".htmlspecialchars($PARAM_domaine.$PARAM_racine.$PARAM_script."/post/".$donnees['post_url'])."</link>".chr(13);
+		$PARAM_xml .= "<guid isPermaLink=\"true\">".htmlspecialchars($PARAM_domaine.$PARAM_racine.$PARAM_script."/post/".$donnees['post_url'])."</guid>".chr(13);
 		$PARAM_xml .= "<pubDate>".(date("D, d M Y H:i:s O", strtotime($donnees['post_upddt'])))."</pubDate>".chr(13);
 		$PARAM_xml .= "<description>".htmlspecialchars(stripcslashes($donnees['post_content_xhtml']))."</description>".chr(13);
 		$PARAM_xml .= "</item>".chr(13);
@@ -130,7 +137,7 @@ if ($url[0] == "sitemap"){
 	echo '</url>'.chr(13);
 	while( $ligne = $resultats->fetch() ){
 		echo '<url>'.chr(13);
-		echo '<loc>'.$PARAM_domaine.$PARAM_racine.$PARAM_script.'/post'.$ligne->post_url.'</loc>'.chr(13);
+		echo '<loc>'.$PARAM_domaine.$PARAM_racine.$PARAM_script.'/post/'.$ligne->post_url.'</loc>'.chr(13);
 		echo '<priority>1.0</priority>'.chr(13);
 		echo '<changefreq>daily</changefreq>'.chr(13);
 		echo '<lastmod>'.str_replace(" ","T",$ligne->post_upddt).'+00:00</lastmod>'.chr(13);
